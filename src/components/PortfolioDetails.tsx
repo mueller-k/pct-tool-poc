@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Clipboard, TableIcon } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -26,7 +28,17 @@ export default function PortfolioDetails({
 }: PortfolioDetailsProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isClipboardSupported, setIsClipboardSupported] = useState(false);
   const pasteTargetRef = useRef<HTMLDivElement>(null);
+
+  // Check for Clipboard API support on component mount
+  useEffect(() => {
+    setIsClipboardSupported(
+      typeof navigator !== "undefined" &&
+        !!navigator.clipboard &&
+        typeof navigator.clipboard.readText === "function"
+    );
+  }, []);
 
   const parseExcelData = (text: string): string[][] => {
     // First, try to split by tabs (Excel default)
@@ -72,12 +84,22 @@ export default function PortfolioDetails({
     }
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
+  const handlePaste = async (e?: React.ClipboardEvent) => {
+    e?.preventDefault();
     setError(null);
 
     try {
-      const text = e.clipboardData.getData("text");
+      let text: string | undefined;
+
+      if (e) {
+        // Handle regular paste event
+        text = e.clipboardData.getData("text");
+      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+        // Handle mobile clipboard API
+        const clipboardItems = await navigator.clipboard.readText();
+        text = clipboardItems;
+      }
+
       if (text) {
         const parsedData = parseExcelData(text);
         if (parsedData.length > 0 && parsedData[0].length > 0) {
@@ -87,8 +109,17 @@ export default function PortfolioDetails({
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError(
-        "Failed to parse the pasted data. Please make sure it's valid Excel data."
+        "Failed to access clipboard. Please try copying your data again."
       );
+    }
+  };
+
+  const handleMobilePaste = async () => {
+    try {
+      await handlePaste();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
+      setError("Failed to paste. Please try copying your data again.");
     }
   };
 
@@ -116,54 +147,80 @@ export default function PortfolioDetails({
       </div>
 
       <div className="space-y-2">
-        <Label>Paste Your Portfolio Data</Label>
-        <Card
-          ref={pasteTargetRef}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onPaste={handlePaste}
-          tabIndex={0}
-          role="textbox"
-          aria-label="Paste excel data area"
-          className={`
-            h-32 
-            flex 
-            items-center 
-            justify-center 
-            border-2 
-            border-dashed 
-            rounded-lg 
-            cursor-pointer
-            focus:outline-none
-            focus:ring-2
-            focus:ring-ring
-            ${
-              isDragging
-                ? "border-primary bg-primary/10"
-                : "border-muted-foreground/25"
-            }
-            ${error ? "border-destructive" : ""}
-          `}
-        >
-          <div className="text-center p-4">
-            {error ? (
-              <p className="text-sm text-destructive">{error}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {isDragging
-                  ? "Drop Excel data here"
-                  : "Copy data from Excel and paste here"}
-              </p>
-            )}
-          </div>
-        </Card>
+        <Label>Paste Excel Data</Label>
+        <div className="relative">
+          <Card
+            ref={pasteTargetRef}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onPaste={handlePaste}
+            tabIndex={0}
+            role="textbox"
+            aria-label="Paste excel data area"
+            className={`
+              h-32 
+              flex 
+              items-center 
+              justify-center 
+              border-2 
+              border-dashed 
+              rounded-lg 
+              cursor-pointer
+              focus:outline-none
+              focus:ring-2
+              focus:ring-ring
+              ${
+                isDragging
+                  ? "border-primary bg-primary/10"
+                  : "border-muted-foreground/25"
+              }
+              ${error ? "border-destructive" : ""}
+            `}
+          >
+            <div className="text-center p-4">
+              {error ? (
+                <p className="text-sm text-destructive">{error}</p>
+              ) : (
+                <div className="space-y-2">
+                  <TableIcon className="w-6 h-6 mx-auto text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    {isDragging
+                      ? "Drop Excel data here"
+                      : "Copy data from Excel and paste here"}
+                  </p>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Mobile paste button - only show if clipboard is supported */}
+          {isClipboardSupported && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="absolute bottom-2 right-2 md:hidden"
+              onClick={handleMobilePaste}
+            >
+              <Clipboard className="w-4 h-4 mr-2" />
+              Paste
+            </Button>
+          )}
+        </div>
+
+        {/* Instructions for mobile users */}
+        {isClipboardSupported && (
+          <p className="text-sm text-muted-foreground md:hidden">
+            Tap the paste button after copying your Excel data
+          </p>
+        )}
       </div>
 
       {formData.tableData && formData.tableData.length > 0 && (
         <div className="space-y-2">
           <Label>Pasted Data</Label>
-          <div className="border rounded-lg">
+          <div className="border rounded-lg overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>
