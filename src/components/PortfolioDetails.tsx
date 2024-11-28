@@ -116,7 +116,7 @@ export default function PortfolioDetails({
       </div>
 
       <div className="space-y-2">
-        <Label>Paste Excel Data</Label>
+        <Label>Paste Your Portfolio Data</Label>
         <Card
           ref={pasteTargetRef}
           onDragOver={handleDragOver}
@@ -153,7 +153,7 @@ export default function PortfolioDetails({
               <p className="text-sm text-muted-foreground">
                 {isDragging
                   ? "Drop Excel data here"
-                  : "Copy data from Excel and paste here, or drag and drop"}
+                  : "Copy data from Excel and paste here"}
               </p>
             )}
           </div>
