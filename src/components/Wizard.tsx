@@ -20,6 +20,7 @@ export default function Wizard() {
   const [formData, setFormData] = useState<WizardFormData>({
     name: "",
     description: "",
+    tableData: [], // Initialize tableData as empty array
     benchmark: "",
     scenario: "",
   });
@@ -138,7 +139,7 @@ export default function Wizard() {
           onClick={nextStep}
           disabled={step === "summary" || !isStepComplete()}
         >
-          {step === "summary" ? "Get Results" : "Next"}
+          {step === "summary" ? "Get Results!" : "Next"}
         </Button>
       </CardFooter>
     </Card>

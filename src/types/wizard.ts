@@ -1,6 +1,7 @@
 export type PortfolioDetailsData = {
     name: string
     description: string
+    tableData: string[][]
 }
 
 export type BenchmarkSelectionData = {
